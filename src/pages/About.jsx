@@ -1,6 +1,19 @@
+import { useEffect } from 'react';
 import Layout from '../components/Layout';
+import { setMeta } from '../utils/seo';
 
 export default function About() {
+  useEffect(() => {
+    const ogImage = `/api/og?title=${encodeURIComponent('About')}&subtitle=${encodeURIComponent(
+      'Our travel mission'
+    )}`;
+    setMeta({
+      title: 'About | TravelBlog',
+      description: 'Learn about our travel mission and community.',
+      image: ogImage,
+      url: window.location.href,
+    });
+  }, []);
   return (
     <Layout>
       <div className="relative h-64 bg-gradient-to-r from-primary-dark to-dark-green flex items-center justify-center">

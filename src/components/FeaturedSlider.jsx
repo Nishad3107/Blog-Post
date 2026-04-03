@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import useEmblaCarousel from 'embla-carousel-react';
 import { motion } from 'framer-motion';
-import { resolveSingleImage } from '../utils/imageFallback';
+import { resolveSingleImage, placeholderImage } from '../utils/imageFallback';
 
 export default function FeaturedSlider({ trips }) {
   const [emblaRef, emblaApi] = useEmblaCarousel({ loop: true, align: 'center' });
@@ -41,6 +41,10 @@ export default function FeaturedSlider({ trips }) {
                     alt={trip.title}
                     className="absolute inset-0 w-full h-full object-cover"
                     loading="lazy"
+                    decoding="async"
+                    onError={(e) => {
+                      e.currentTarget.src = placeholderImage();
+                    }}
                   />
                   <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/30 to-transparent" />
                   <div className="absolute bottom-6 left-6 right-6 text-left text-white">

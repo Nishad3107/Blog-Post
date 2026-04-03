@@ -2,9 +2,11 @@ import { motion } from 'framer-motion';
 import { useNavigate } from 'react-router-dom';
 import GalleryCard from './GalleryCard';
 import FeaturedSlider from './FeaturedSlider';
+import { useWishlist } from '../hooks/useWishlist';
 
 export default function TravelGallery({ trips = [], loading }) {
   const navigate = useNavigate();
+  const wishlist = useWishlist();
 
   if (loading) {
     return (
@@ -45,7 +47,12 @@ export default function TravelGallery({ trips = [], loading }) {
         </h3>
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
           {trips.map((trip) => (
-            <GalleryCard key={trip.id} trip={trip} />
+            <GalleryCard
+              key={trip.id}
+              trip={trip}
+              saved={wishlist.isSaved(trip.id)}
+              onToggle={() => wishlist.toggle(trip)}
+            />
           ))}
         </div>
       </motion.div>

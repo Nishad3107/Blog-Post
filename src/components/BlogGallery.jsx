@@ -1,10 +1,13 @@
 import { useRef, useState } from 'react';
+import ImageLightbox from './ImageLightbox';
+import { placeholderImage } from '../utils/imageFallback';
 
 export default function BlogGallery({ images = [] }) {
   const containerRef = useRef(null);
   const [isDragging, setIsDragging] = useState(false);
   const [startX, setStartX] = useState(0);
   const [scrollLeft, setScrollLeft] = useState(0);
+  const [active, setActive] = useState(null);
 
   const onMouseDown = (e) => {
     if (!containerRef.current) return;
@@ -60,19 +63,26 @@ export default function BlogGallery({ images = [] }) {
         onMouseMove={onMouseMove}
       >
         {images.map((img, index) => (
-          <div
+          <button
+            type="button"
             key={`${img}-${index}`}
             className="snap-start flex-shrink-0 w-[320px] h-[220px] rounded-xl shadow-lg overflow-hidden"
+            onClick={() => setActive(img)}
           >
             <img
               src={img}
               alt={`Gallery ${index + 1}`}
               className="w-full h-full object-cover"
               loading="lazy"
+              decoding="async"
+              onError={(e) => {
+                e.currentTarget.src = placeholderImage();
+              }}
             />
-          </div>
+          </button>
         ))}
       </div>
+      <ImageLightbox src={active} alt="Gallery" onClose={() => setActive(null)} />
     </div>
   );
 }

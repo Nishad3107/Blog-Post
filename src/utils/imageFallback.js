@@ -44,7 +44,10 @@ export async function resolveImages(location, images = []) {
 }
 
 export function resolveSingleImage(location, imageUrl) {
-  if (imageUrl) return imageUrl;
+  const isUrl =
+    typeof imageUrl === 'string' &&
+    (imageUrl.startsWith('http') || imageUrl.startsWith('data:') || imageUrl.startsWith('/'));
+  if (isUrl) return imageUrl;
   return matchFallbackImage(location);
 }
 

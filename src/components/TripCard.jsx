@@ -1,7 +1,7 @@
 import { Link } from 'react-router-dom';
-import { resolveSingleImage } from '../utils/imageFallback';
+import { resolveSingleImage, placeholderImage } from '../utils/imageFallback';
 
-export default function TripCard({ id, title, image, description, location, date }) {
+export default function TripCard({ id, title, image, description, location, date, tags = [], saved, onToggle }) {
   const resolvedImage = resolveSingleImage(location || title, image);
   const isImageUrl = typeof resolvedImage === 'string' && (resolvedImage.startsWith('http') || resolvedImage.startsWith('data:') || resolvedImage.startsWith('/'));
 
@@ -14,6 +14,10 @@ export default function TripCard({ id, title, image, description, location, date
             alt={title}
             className="w-full h-full object-cover transition-transform duration-700 will-change-transform parallax-zoom"
             loading="lazy"
+            decoding="async"
+            onError={(e) => {
+              e.currentTarget.src = placeholderImage();
+            }}
             data-parallax
             data-zoom="0.08"
           />
@@ -21,6 +25,19 @@ export default function TripCard({ id, title, image, description, location, date
           <div className="w-full h-full flex items-center justify-center text-5xl sm:text-6xl lg:text-7xl">
             <span className="group-hover:scale-110 transition-transform duration-500">{image}</span>
           </div>
+        )}
+        {onToggle && (
+          <button
+            type="button"
+            onClick={(e) => {
+              e.preventDefault();
+              onToggle();
+            }}
+            className="absolute top-3 left-3 sm:top-4 sm:left-4 bg-white/90 text-primary-dark text-xs sm:text-sm font-medium px-2 sm:px-3 py-1 rounded-full font-body hover:bg-white transition"
+            aria-label={saved ? 'Remove from wishlist' : 'Save to wishlist'}
+          >
+            {saved ? 'Saved' : 'Save'}
+          </button>
         )}
         <div className="absolute inset-0 bg-gradient-to-t from-primary-dark/35 via-transparent to-transparent opacity-70 pointer-events-none" />
         {date && (
@@ -43,6 +60,15 @@ export default function TripCard({ id, title, image, description, location, date
           {title}
         </h3>
         <p className="text-sm sm:text-base text-dark-green mb-3 sm:mb-4 line-clamp-2 font-body">{description}</p>
+        {tags.length > 0 && (
+          <div className="flex flex-wrap gap-2 mb-3">
+            {tags.slice(0, 3).map((tag) => (
+              <span key={tag} className="text-xs px-2 py-1 rounded-full bg-soft-mint text-primary-dark font-body">
+                {tag}
+              </span>
+            ))}
+          </div>
+        )}
         <Link 
           to={id ? `/trip/${id}` : '#'}
           className="text-accent-green font-semibold hover:text-primary-green transition-colors duration-300 flex items-center gap-1 group-hover:gap-2 font-button"

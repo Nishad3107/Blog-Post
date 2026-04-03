@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
 import { BrowserRouter as Router, Routes, Route, useLocation } from 'react-router-dom';
 import { AnimatePresence, motion } from 'framer-motion';
 import { ParallaxProvider } from 'react-scroll-parallax';
@@ -9,6 +9,8 @@ import AddStory from './pages/AddStory';
 import About from './pages/About';
 import ExploreLocation from './pages/ExploreLocation';
 import IntroLoader from './components/IntroLoader';
+import NotFound from './pages/NotFound';
+import Wishlist from './pages/Wishlist';
 
 function AppRoutes() {
   const location = useLocation();
@@ -29,6 +31,8 @@ function AppRoutes() {
           <Route path="/explore/:location" element={<ExploreLocation />} />
           <Route path="/add-story" element={<AddStory />} />
           <Route path="/about" element={<About />} />
+          <Route path="/wishlist" element={<Wishlist />} />
+          <Route path="*" element={<NotFound />} />
         </Routes>
       </motion.div>
     </AnimatePresence>
@@ -37,14 +41,6 @@ function AppRoutes() {
 
 function App() {
   const [loading, setLoading] = useState(true);
-
-  useEffect(() => {
-    const timer = setTimeout(() => {
-      setLoading(false);
-    }, 2500);
-
-    return () => clearTimeout(timer);
-  }, []);
 
   return (
     <Router>
@@ -58,7 +54,7 @@ function App() {
               exit={{ opacity: 0 }}
               transition={{ duration: 0.6, ease: 'easeOut' }}
             >
-              <IntroLoader />
+              <IntroLoader onComplete={() => setLoading(false)} />
             </motion.div>
           ) : (
             <AppRoutes />

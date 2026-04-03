@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { Parallax } from 'react-scroll-parallax';
 import Layout from '../components/Layout';
@@ -8,6 +9,7 @@ import BlogCard from '../components/BlogCard';
 import Destination3DSlider from '../components/Destination3DSlider';
 import TravelGallery from '../components/TravelGallery';
 import { useTrips } from '../hooks/useTrips';
+import { setMeta } from '../utils/seo';
 
 const featuredTrips = [
   {
@@ -113,6 +115,7 @@ export default function Home() {
   const [visibleCount, setVisibleCount] = useState(3);
   const loaderRef = useRef(null);
   const { trips, loading: tripsLoading } = useTrips();
+  const navigate = useNavigate();
 
   useEffect(() => {
     if (!loaderRef.current) return;
@@ -129,6 +132,18 @@ export default function Home() {
     observer.observe(loaderRef.current);
     return () => observer.disconnect();
   }, [visibleCount]);
+
+  useEffect(() => {
+    const ogImage = `/api/og?title=${encodeURIComponent('TravelBlog')}&subtitle=${encodeURIComponent(
+      'Explore the world'
+    )}`;
+    setMeta({
+      title: 'TravelBlog | Explore the World',
+      description: 'Discover immersive travel stories, curated trips, and destination guides.',
+      image: ogImage,
+      url: window.location.href,
+    });
+  }, []);
 
   return (
     <div className="relative z-10">
@@ -234,7 +249,13 @@ export default function Home() {
               <p className="text-white/80 font-body mb-6">
                 From alpine peaks to hidden seaside towns, I focus on places with soul and stories worth telling.
               </p>
-              <button className="btn-primary btn-ripple">Meet the Traveller</button>
+              <button
+                type="button"
+                className="btn-primary btn-ripple"
+                onClick={() => navigate('/about')}
+              >
+                Meet the Traveller
+              </button>
             </div>
             <div className="relative">
               <div className="absolute -inset-6 rounded-[2rem] bg-white/10 blur-2xl" />

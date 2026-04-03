@@ -4,6 +4,9 @@ const BUCKET_NAME = 'trip-images';
 
 export async function uploadImage(file) {
   if (!file) return null;
+  if (!supabase) {
+    throw new Error('Supabase is not configured. Image upload is disabled.');
+  }
 
   const fileExt = file.name.split('.').pop();
   const fileName = `${Date.now()}-${Math.random().toString(36).substr(2, 9)}.${fileExt}`;
@@ -29,6 +32,7 @@ export async function uploadImage(file) {
 
 export async function deleteImage(imageUrl) {
   if (!imageUrl) return;
+  if (!supabase) return;
 
   const urlParts = imageUrl.split('/');
   const fileName = urlParts[urlParts.length - 1];

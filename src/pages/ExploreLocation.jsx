@@ -5,6 +5,10 @@ import ExploreWeatherWidget from '../components/ExploreWeatherWidget';
 import ExploreGallery from '../components/ExploreGallery';
 import ExploreBlog from '../components/ExploreBlog';
 import { buildExploreData } from '../utils/exploreApi';
+import { placeholderImage } from '../utils/imageFallback';
+import ChatbotWidget from '../components/ChatbotWidget';
+import { setMeta } from '../utils/seo';
+import Toast from '../components/Toast';
 
 function titleCase(value) {
   return value
@@ -21,11 +25,24 @@ export default function ExploreLocation() {
   const [data, setData] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  const [copyNotice, setCopyNotice] = useState('');
 
   useEffect(() => {
     if (!decodedLocation) return;
 
     let isMounted = true;
+    const cacheKey = `travelblog_explore_${decodedLocation.toLowerCase()}`;
+    const cachedRaw = localStorage.getItem(cacheKey);
+    if (cachedRaw) {
+      try {
+        const cached = JSON.parse(cachedRaw);
+        if (cached?.data) {
+          setData(cached.data);
+        }
+      } catch {
+        // ignore
+      }
+    }
 
     async function loadData() {
       setLoading(true);
@@ -33,14 +50,17 @@ export default function ExploreLocation() {
       try {
         const payload = await buildExploreData(decodedLocation);
         if (isMounted) {
-          setData({
+          const nextData = {
             location: payload.location || titleCase(decodedLocation),
             intro: payload.intro,
             topPlaces: payload.topPlaces || [],
             weather: payload.weather || null,
             images: payload.images || [],
             thumbnail: payload.thumbnail || '',
-          });
+            bestTime: payload.bestTime || '',
+          };
+          setData(nextData);
+          localStorage.setItem(cacheKey, JSON.stringify({ ts: Date.now(), data: nextData }));
         }
       } catch (err) {
         if (isMounted) setError('Destination not found. Try another location.');
@@ -55,6 +75,19 @@ export default function ExploreLocation() {
       isMounted = false;
     };
   }, [decodedLocation]);
+
+  useEffect(() => {
+    if (!data) return;
+    const ogImage = `/api/og?title=${encodeURIComponent(data.location)}&subtitle=${encodeURIComponent(
+      'Destination guide'
+    )}&image=${encodeURIComponent(data.images?.[0] || '')}`;
+    setMeta({
+      title: `${data.location} | TravelBlog`,
+      description: data.intro || `Explore ${data.location}`,
+      image: ogImage,
+      url: window.location.href,
+    });
+  }, [data]);
 
   return (
     <Layout>
@@ -85,6 +118,9 @@ export default function ExploreLocation() {
                   src={data.images[0]}
                   alt={data.location}
                   className="absolute inset-0 w-full h-full object-cover opacity-40"
+                  onError={(e) => {
+                    e.currentTarget.src = placeholderImage();
+                  }}
                 />
               )}
               <div className="relative z-10 px-6 sm:px-10 py-12 sm:py-16">
@@ -93,6 +129,29 @@ export default function ExploreLocation() {
                 <p className="text-white/80 mt-4 max-w-2xl font-body">
                   {data.intro || `Plan your next journey to ${data.location} with smart insights.`}
                 </p>
+                <div className="mt-6 flex flex-wrap gap-3">
+                  <a
+                    href="/wishlist"
+                    className="bg-white/10 text-white text-xs sm:text-sm font-medium px-3 py-1 rounded-full font-body hover:bg-white/20 transition"
+                  >
+                    Wishlist
+                  </a>
+                  <button
+                    type="button"
+                    onClick={async () => {
+                      const shareUrl = window.location.href;
+                      if (navigator.share) {
+                        await navigator.share({ title: data.location, url: shareUrl });
+                      } else {
+                        await navigator.clipboard.writeText(shareUrl);
+                        setCopyNotice('Link copied');
+                      }
+                    }}
+                    className="bg-white/10 text-white text-xs sm:text-sm font-medium px-3 py-1 rounded-full font-body hover:bg-white/20 transition"
+                  >
+                    Share
+                  </button>
+                </div>
               </div>
             </section>
 
@@ -109,8 +168,8 @@ export default function ExploreLocation() {
             <section className="bg-white rounded-2xl shadow-lg p-8 border-2 border-soft-mint">
               <h2 className="font-heading text-2xl text-primary-dark mb-4">Top Places</h2>
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-                {data.topPlaces.map((place) => (
-                  <div key={place} className="p-4 rounded-xl bg-background-mint text-dark-green font-body">
+                {data.topPlaces.map((place, index) => (
+                  <div key={`${place}-${index}`} className="p-4 rounded-xl bg-background-mint text-dark-green font-body">
                     {place}
                   </div>
                 ))}
@@ -122,10 +181,28 @@ export default function ExploreLocation() {
               <ExploreGallery images={data.images} />
             </section>
 
-            <ExploreBlog location={data.location} intro={data.intro} topPlaces={data.topPlaces} />
+            <ExploreBlog
+              location={data.location}
+              intro={data.intro}
+              topPlaces={data.topPlaces}
+              bestTime={data.bestTime}
+            />
           </div>
         )}
       </div>
+      <Toast message={copyNotice} duration={3000} onClose={() => setCopyNotice('')} />
+      {data && (
+        <ChatbotWidget
+          context={[
+            `Location: ${data.location}`,
+            data.intro ? `Summary: ${data.intro}` : '',
+            data.topPlaces?.length ? `Top places: ${data.topPlaces.join(', ')}` : '',
+            data.bestTime ? `Best time: ${data.bestTime}` : '',
+          ]
+            .filter(Boolean)
+            .join('\n')}
+        />
+      )}
     </Layout>
   );
 }

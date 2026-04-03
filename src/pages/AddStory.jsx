@@ -1,8 +1,11 @@
-import { useState, useRef } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import Layout from '../components/Layout';
 import { supabase } from '../services/supabase';
 import { uploadImage } from '../services/storage';
+import { setMeta } from '../utils/seo';
+
+const CACHE_KEY = 'travelblog_trips_cache_v1';
 
 export default function AddStory() {
   const navigate = useNavigate();
@@ -17,9 +20,59 @@ export default function AddStory() {
     image_url: '',
     description: '',
     content: '',
+    region: '',
+    season: '',
+    budget: '',
+    tags: '',
   });
   const [selectedFile, setSelectedFile] = useState(null);
   const [previewUrl, setPreviewUrl] = useState(null);
+
+  useEffect(() => {
+    const ogImage = `/api/og?title=${encodeURIComponent('Add Story')}&subtitle=${encodeURIComponent(
+      'Share your journey'
+    )}`;
+    setMeta({
+      title: 'Add Story | TravelBlog',
+      description: 'Share your travel experience with the community.',
+      image: ogImage,
+      url: window.location.href,
+    });
+  }, []);
+
+  if (!supabase) {
+    return (
+      <Layout>
+        <div className="min-h-[60vh] flex items-center justify-center px-4">
+          <div className="max-w-xl text-center bg-white border-2 border-soft-mint rounded-2xl p-8 shadow-lg">
+            <h1 className="text-2xl sm:text-3xl font-heading text-primary-dark mb-3">
+              Supabase Not Configured
+            </h1>
+            <p className="text-dark-green font-body mb-6">
+              Story publishing needs Supabase. Add your Supabase URL and anon key in `.env`,
+              then restart the dev server.
+            </p>
+            <div className="flex flex-col sm:flex-row gap-3 justify-center">
+              <button
+                type="button"
+                onClick={() => navigate('/trips')}
+                className="btn-primary btn-ripple"
+              >
+                View Trips
+              </button>
+              <button
+                type="button"
+                onClick={() => navigate('/')}
+                className="btn-secondary btn-ripple"
+              >
+                Back Home
+              </button>
+            </div>
+          </div>
+        </div>
+      </Layout>
+    );
+  }
 
   const handleChange = (e) => {
     setFormData({ ...formData, [e.target.name]: e.target.value });
@@ -71,10 +124,46 @@ export default function AddStory() {
             description: formData.description,
             content: formData.content,
             author: 'Anonymous',
+            region: formData.region || null,
+            season: formData.season || null,
+            budget: formData.budget || null,
+            tags: formData.tags
+              ? formData.tags.split(',').map((t) => t.trim()).filter(Boolean)
+              : [],
+            status: 'published',
           },
         ]);
 
       if (insertError) throw insertError;
+
+      try {
+        const raw = localStorage.getItem(CACHE_KEY);
+        const parsed = raw ? JSON.parse(raw) : null;
+        const existing = Array.isArray(parsed?.data) ? parsed.data : [];
+        const next = [
+          {
+            id: `local-${Date.now()}`,
+            title: formData.title,
+            location: formData.location,
+            image_url: imageUrl,
+            description: formData.description,
+            content: formData.content,
+            author: 'Anonymous',
+            region: formData.region || null,
+            season: formData.season || null,
+            budget: formData.budget || null,
+            tags: formData.tags
+              ? formData.tags.split(',').map((t) => t.trim()).filter(Boolean)
+              : [],
+            status: 'published',
+            created_at: new Date().toISOString(),
+          },
+          ...existing,
+        ];
+        localStorage.setItem(CACHE_KEY, JSON.stringify({ ts: Date.now(), data: next }));
+      } catch {
+        // ignore cache update
+      }
 
       setSuccess(true);
       setFormData({
@@ -83,6 +172,10 @@ export default function AddStory() {
         image_url: '',
         description: '',
         content: '',
+        region: '',
+        season: '',
+        budget: '',
+        tags: '',
       });
       setSelectedFile(null);
       setPreviewUrl(null);
@@ -238,6 +331,65 @@ export default function AddStory() {
               placeholder="Tell us about your adventure in detail..."
               required
             />
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <div>
+              <label htmlFor="region" className="block text-sm font-medium text-primary-dark mb-2 font-body">
+                Region
+              </label>
+              <input
+                type="text"
+                id="region"
+                name="region"
+                value={formData.region}
+                onChange={handleChange}
+                className="w-full px-4 py-3 border-2 border-soft-mint focus:border-accent-green rounded-lg transition font-body"
+                placeholder="e.g., Europe, Southeast Asia"
+              />
+            </div>
+            <div>
+              <label htmlFor="season" className="block text-sm font-medium text-primary-dark mb-2 font-body">
+                Best Season
+              </label>
+              <input
+                type="text"
+                id="season"
+                name="season"
+                value={formData.season}
+                onChange={handleChange}
+                className="w-full px-4 py-3 border-2 border-soft-mint focus:border-accent-green rounded-lg transition font-body"
+                placeholder="e.g., Spring, Summer"
+              />
+            </div>
+            <div>
+              <label htmlFor="budget" className="block text-sm font-medium text-primary-dark mb-2 font-body">
+                Budget
+              </label>
+              <input
+                type="text"
+                id="budget"
+                name="budget"
+                value={formData.budget}
+                onChange={handleChange}
+                className="w-full px-4 py-3 border-2 border-soft-mint focus:border-accent-green rounded-lg transition font-body"
+                placeholder="e.g., Low, Mid, High"
+              />
+            </div>
+            <div>
+              <label htmlFor="tags" className="block text-sm font-medium text-primary-dark mb-2 font-body">
+                Tags (comma separated)
+              </label>
+              <input
+                type="text"
+                id="tags"
+                name="tags"
+                value={formData.tags}
+                onChange={handleChange}
+                className="w-full px-4 py-3 border-2 border-soft-mint focus:border-accent-green rounded-lg transition font-body"
+                placeholder="Beaches, Culture, Food"
+              />
+            </div>
           </div>
 
           <button

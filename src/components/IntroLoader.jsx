@@ -1,7 +1,8 @@
-import { Canvas, useFrame, useThree } from '@react-three/fiber';
+import { Canvas, useFrame, useLoader, useThree } from '@react-three/fiber';
 import { motion } from 'framer-motion';
-import { useMemo, useRef, useState } from 'react';
+import { Suspense, useEffect, useMemo, useRef, useState } from 'react';
 import * as THREE from 'three';
+import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js';
 
 function createEarthTexture() {
   const canvas = document.createElement('canvas');
@@ -46,8 +47,8 @@ function CameraRig() {
 
   useFrame((state) => {
     const t = state.clock.getElapsedTime();
-    const zoom = Math.min(t / 2.2, 1);
-    camera.position.z = 5.2 - zoom * 2.2;
+    camera.position.z = 5.6 - t * 0.85;
+    camera.position.z = Math.max(camera.position.z, 1.4);
     camera.position.x = Math.sin(t * 0.2) * 0.2;
     camera.position.y = Math.cos(t * 0.18) * 0.15;
     camera.lookAt(target);
@@ -149,8 +150,61 @@ function Globe() {
   );
 }
 
-export default function IntroLoader() {
+function EarthModel({ url, onLoaded }) {
+  const gltf = useLoader(GLTFLoader, url);
+  const modelRef = useRef(null);
+  const scale = useMemo(() => {
+    const box = new THREE.Box3().setFromObject(gltf.scene);
+    const size = new THREE.Vector3();
+    box.getSize(size);
+    const maxAxis = Math.max(size.x, size.y, size.z) || 1;
+    return 2.6 / maxAxis;
+  }, [gltf.scene]);
+
+  useEffect(() => {
+    if (onLoaded) onLoaded();
+  }, [onLoaded]);
+
+  useFrame((state) => {
+    if (!modelRef.current) return;
+    const t = state.clock.getElapsedTime();
+    modelRef.current.rotation.y = -10.0 - t * 0.28;
+  });
+
+  return (
+    <primitive
+      ref={modelRef}
+      object={gltf.scene}
+      scale={scale}
+      rotation={[0.15, -10.0, 0]}
+      position={[0, -0.05, 0]}
+    />
+  );
+}
+
+export default function IntroLoader({ onComplete, minDuration = 2500, maxDuration = 6000 }) {
   const [lost, setLost] = useState(false);
+  const modelUrl = import.meta.env.VITE_EARTH_MODEL_URL;
+  const [minDone, setMinDone] = useState(false);
+  const [modelDone, setModelDone] = useState(!modelUrl);
+  const completedRef = useRef(false);
+
+  useEffect(() => {
+    const minTimer = setTimeout(() => setMinDone(true), minDuration);
+    const maxTimer = setTimeout(() => setModelDone(true), maxDuration);
+    return () => {
+      clearTimeout(minTimer);
+      clearTimeout(maxTimer);
+    };
+  }, [minDuration, maxDuration]);
+
+  useEffect(() => {
+    if (completedRef.current) return;
+    if (minDone && modelDone) {
+      completedRef.current = true;
+      onComplete?.();
+    }
+  }, [minDone, modelDone, onComplete]);
 
   if (lost) return null;
 
@@ -173,7 +227,13 @@ export default function IntroLoader() {
         <directionalLight intensity={1.1} position={[3, 2, 4]} color="#EAFBF3" />
         <pointLight intensity={0.6} position={[-4, -2, -3]} color="#22A568" />
         <StarField />
-        <Globe />
+        {modelUrl ? (
+          <Suspense fallback={null}>
+            <EarthModel url={modelUrl} onLoaded={() => setModelDone(true)} />
+          </Suspense>
+        ) : (
+          <Globe />
+        )}
         <CameraRig />
       </Canvas>
       <div className="absolute inset-0 bg-gradient-to-b from-black/60 via-black/30 to-black/70" />

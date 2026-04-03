@@ -1,0 +1,9 @@
+version: "3.9"
+services:
+  chatbot:
+    build: .
+    environment:
+      - GEMINI_API_KEY=${GEMINI_API_KEY}
+      - CHATBOT_PORT=8787
+    ports:
+      - "8787:8787"

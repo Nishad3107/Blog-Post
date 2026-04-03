@@ -1,22 +1,106 @@
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import Layout from '../components/Layout';
 import TripCard from '../components/TripCard';
 import { useTrips } from '../hooks/useTrips';
 import useParallax from '../hooks/useParallax';
+import { useWishlist } from '../hooks/useWishlist';
+import { setMeta } from '../utils/seo';
 
 export default function Trips() {
   const { trips, loading, error } = useTrips();
   const [searchQuery, setSearchQuery] = useState('');
+  const [regionFilter, setRegionFilter] = useState('all');
+  const [seasonFilter, setSeasonFilter] = useState('all');
+  const [budgetFilter, setBudgetFilter] = useState('all');
+  const [tagFilter, setTagFilter] = useState('all');
   useParallax();
+  const wishlist = useWishlist();
+
+  useEffect(() => {
+    const ogImage = `/api/og?title=${encodeURIComponent('Trips')}&subtitle=${encodeURIComponent(
+      'Curated destinations'
+    )}`;
+    setMeta({
+      title: 'TravelBlog | Trips',
+      description: 'Browse curated travel stories and destinations.',
+      image: ogImage,
+      url: window.location.href,
+    });
+  }, []);
 
   const fallbackTrips = [
-    { id: 1, title: 'Bali, Indonesia', date: 'March 15-22, 2026', image: 'https://images.unsplash.com/photo-1500375592092-40eb2168fd21?auto=format&fit=crop&w=1600&q=80', description: 'Tropical paradise with stunning beaches, ancient temples, and lush rice terraces. Experience the magic of island life.', location: 'Bali, Indonesia' },
-    { id: 2, title: 'Santorini, Greece', date: 'April 5-12, 2026', image: 'https://images.unsplash.com/photo-1500530855697-b586d89ba3ee?auto=format&fit=crop&w=1600&q=80', description: 'White-washed buildings, crystal-clear waters, and world-famous sunsets. Discover the jewel of the Aegean Sea.', location: 'Santorini, Greece' },
-    { id: 3, title: 'Kyoto, Japan', date: 'May 1-10, 2026', image: 'https://images.unsplash.com/photo-1500534314209-a25ddb2bd429?auto=format&fit=crop&w=1600&q=80', description: 'Ancient temples, traditional gardens, and authentic Japanese culture. Walk through centuries of history.', location: 'Kyoto, Japan' },
-    { id: 4, title: 'Reykjavik, Iceland', date: 'June 20-28, 2026', image: 'https://images.unsplash.com/photo-1470770841072-f978cf4d019e?auto=format&fit=crop&w=1600&q=80', description: 'Northern lights, dramatic landscapes, and geothermal wonders. Adventure awaits in the land of fire and ice.', location: 'Reykjavik, Iceland' },
+    {
+      id: 1,
+      title: 'Bali, Indonesia',
+      date: 'March 15-22, 2026',
+      image: 'https://images.unsplash.com/photo-1500375592092-40eb2168fd21?auto=format&fit=crop&w=1600&q=80',
+      description: 'Tropical paradise with stunning beaches, ancient temples, and lush rice terraces. Experience the magic of island life.',
+      location: 'Bali, Indonesia',
+      region: 'Southeast Asia',
+      season: 'Spring',
+      budget: 'Mid',
+      tags: ['Beaches', 'Culture', 'Wellness'],
+    },
+    {
+      id: 2,
+      title: 'Santorini, Greece',
+      date: 'April 5-12, 2026',
+      image: 'https://images.unsplash.com/photo-1500530855697-b586d89ba3ee?auto=format&fit=crop&w=1600&q=80',
+      description: 'White-washed buildings, crystal-clear waters, and world-famous sunsets. Discover the jewel of the Aegean Sea.',
+      location: 'Santorini, Greece',
+      region: 'Europe',
+      season: 'Summer',
+      budget: 'Mid',
+      tags: ['Beaches', 'Romance', 'Food'],
+    },
+    {
+      id: 3,
+      title: 'Kyoto, Japan',
+      date: 'May 1-10, 2026',
+      image: 'https://images.unsplash.com/photo-1500534314209-a25ddb2bd429?auto=format&fit=crop&w=1600&q=80',
+      description: 'Ancient temples, traditional gardens, and authentic Japanese culture. Walk through centuries of history.',
+      location: 'Kyoto, Japan',
+      region: 'East Asia',
+      season: 'Autumn',
+      budget: 'Mid',
+      tags: ['Culture', 'City', 'Food'],
+    },
+    {
+      id: 4,
+      title: 'Reykjavik, Iceland',
+      date: 'June 20-28, 2026',
+      image: 'https://images.unsplash.com/photo-1470770841072-f978cf4d019e?auto=format&fit=crop&w=1600&q=80',
+      description: 'Northern lights, dramatic landscapes, and geothermal wonders. Adventure awaits in the land of fire and ice.',
+      location: 'Reykjavik, Iceland',
+      region: 'Europe',
+      season: 'Winter',
+      budget: 'High',
+      tags: ['Nature', 'Adventure', 'Hiking'],
+    },
   ];
 
   const displayTrips = trips.length > 0 ? trips : fallbackTrips;
+
+  const filterOptions = useMemo(() => {
+    const regions = new Set();
+    const seasons = new Set();
+    const budgets = new Set();
+    const tags = new Set();
+    displayTrips.forEach((trip) => {
+      if (trip.region) regions.add(trip.region);
+      if (trip.season) seasons.add(trip.season);
+      if (trip.budget) budgets.add(trip.budget);
+      if (Array.isArray(trip.tags)) {
+        trip.tags.forEach((t) => tags.add(t));
+      }
+    });
+    return {
+      regions: Array.from(regions),
+      seasons: Array.from(seasons),
+      budgets: Array.from(budgets),
+      tags: Array.from(tags),
+    };
+  }, [displayTrips]);
 
   const filteredTrips = useMemo(() => {
     if (!searchQuery.trim()) return displayTrips;
@@ -29,6 +113,17 @@ export default function Trips() {
     });
   }, [displayTrips, searchQuery]);
 
+  const fullyFilteredTrips = useMemo(() => {
+    return filteredTrips.filter((trip) => {
+      const regionOk = regionFilter === 'all' || trip.region === regionFilter;
+      const seasonOk = seasonFilter === 'all' || trip.season === seasonFilter;
+      const budgetOk = budgetFilter === 'all' || trip.budget === budgetFilter;
+      const tagOk =
+        tagFilter === 'all' || (Array.isArray(trip.tags) && trip.tags.includes(tagFilter));
+      return regionOk && seasonOk && budgetOk && tagOk;
+    });
+  }, [filteredTrips, regionFilter, seasonFilter, budgetFilter, tagFilter]);
+
   return (
     <Layout>
       <div className="relative h-64 bg-gradient-to-r from-primary-dark to-dark-green flex items-center justify-center">
@@ -39,7 +134,7 @@ export default function Trips() {
       </div>
       
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-16">
-        <div className="mb-8">
+        <div className="mb-8 space-y-4">
           <div className="relative max-w-md mx-auto">
             <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
               <svg className="h-5 w-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -66,14 +161,58 @@ export default function Trips() {
           </div>
           {searchQuery && (
             <p className="text-center mt-3 text-dark-green font-body">
-              Found {filteredTrips.length} {filteredTrips.length === 1 ? 'result' : 'results'} for "{searchQuery}"
+              Found {fullyFilteredTrips.length} {fullyFilteredTrips.length === 1 ? 'result' : 'results'} for "{searchQuery}"
             </p>
           )}
+          <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 max-w-4xl mx-auto">
+            <select
+              className="w-full px-3 py-2 border-2 border-soft-mint rounded-full bg-white font-body text-sm"
+              value={regionFilter}
+              onChange={(e) => setRegionFilter(e.target.value)}
+            >
+              <option value="all">All Regions</option>
+              {filterOptions.regions.map((r) => (
+                <option key={r} value={r}>{r}</option>
+              ))}
+            </select>
+            <select
+              className="w-full px-3 py-2 border-2 border-soft-mint rounded-full bg-white font-body text-sm"
+              value={seasonFilter}
+              onChange={(e) => setSeasonFilter(e.target.value)}
+            >
+              <option value="all">All Seasons</option>
+              {filterOptions.seasons.map((s) => (
+                <option key={s} value={s}>{s}</option>
+              ))}
+            </select>
+            <select
+              className="w-full px-3 py-2 border-2 border-soft-mint rounded-full bg-white font-body text-sm"
+              value={budgetFilter}
+              onChange={(e) => setBudgetFilter(e.target.value)}
+            >
+              <option value="all">All Budgets</option>
+              {filterOptions.budgets.map((b) => (
+                <option key={b} value={b}>{b}</option>
+              ))}
+            </select>
+            <select
+              className="w-full px-3 py-2 border-2 border-soft-mint rounded-full bg-white font-body text-sm"
+              value={tagFilter}
+              onChange={(e) => setTagFilter(e.target.value)}
+            >
+              <option value="all">All Tags</option>
+              {filterOptions.tags.map((t) => (
+                <option key={t} value={t}>{t}</option>
+              ))}
+            </select>
+          </div>
         </div>
 
         {loading && (
-          <div className="flex justify-center items-center py-20">
-            <div className="animate-spin rounded-full h-12 w-12 border-4 border-accent-green border-t-transparent"></div>
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+            {Array.from({ length: 8 }).map((_, index) => (
+              <div key={index} className="h-72 rounded-2xl bg-white/60 border-2 border-soft-mint animate-pulse" />
+            ))}
           </div>
         )}
 
@@ -86,7 +225,7 @@ export default function Trips() {
 
         {!loading && (
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
-            {filteredTrips.map((trip) => (
+            {fullyFilteredTrips.map((trip) => (
               <TripCard
                 key={trip.id}
                 id={trip.id}
@@ -95,12 +234,15 @@ export default function Trips() {
                 description={trip.description}
                 location={trip.location}
                 date={trip.date || new Date(trip.created_at).toLocaleDateString()}
+                tags={trip.tags || []}
+                saved={wishlist.isSaved(trip.id)}
+                onToggle={() => wishlist.toggle(trip)}
               />
             ))}
           </div>
         )}
 
-        {!loading && filteredTrips.length === 0 && searchQuery && (
+        {!loading && fullyFilteredTrips.length === 0 && searchQuery && (
           <div className="text-center py-12">
             <svg className="mx-auto h-16 w-16 text-gray-300 mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9.172 16.172a4 4 0 015.656 0M9 10h.01M15 10h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />

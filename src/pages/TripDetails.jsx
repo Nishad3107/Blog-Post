@@ -3,9 +3,14 @@ import { useParams } from 'react-router-dom';
 import Layout from '../components/Layout';
 import { getWeather, getWeatherIcon } from '../services/weather';
 import DestinationInfo from '../components/DestinationInfo';
-import { resolveImages } from '../utils/imageFallback';
+import { resolveImages, resolveSingleImage } from '../utils/imageFallback';
 import { buildExploreData } from '../utils/exploreApi';
 import BlogGallery from '../components/BlogGallery';
+import { useTrip, useTrips } from '../hooks/useTrips';
+import { useWishlist } from '../hooks/useWishlist';
+import ChatbotWidget from '../components/ChatbotWidget';
+import Toast from '../components/Toast';
+import { setMeta } from '../utils/seo';
 
 const tripsData = {
   1: {
@@ -13,6 +18,10 @@ const tripsData = {
     title: 'Bali, Indonesia',
     location: 'Bali, Indonesia',
     date: 'March 15-22, 2026',
+    region: 'Southeast Asia',
+    season: 'Spring',
+    budget: 'Mid',
+    tags: ['Beaches', 'Culture', 'Wellness'],
     heroImage: '🌴',
     description: 'Tropical paradise with stunning beaches, ancient temples, and lush rice terraces. Experience the magic of island life.',
     story: `My journey to Bali was nothing short of magical. From the moment I stepped off the plane, I was greeted by the warm tropical air and the friendly smiles of the locals.
@@ -28,12 +37,23 @@ The food scene in Bali surprised me at every turn. From street food stalls servi
 As I left Bali, I knew this wasn't goodbye but just a see you later. There's still so much more to explore - the eastern temples, the volcanic treks, the hidden waterfalls. Bali has a way of calling you back.`,
     gallery: ['🏖️', '🏝️', '🌅', '🛕', '🌾', '🐒'],
     coordinates: { lat: -8.4095, lng: 115.1889 },
+    itinerary: [
+      { day: 'Day 1', plan: 'Arrive in Ubud, sunset walk through rice terraces.' },
+      { day: 'Day 2', plan: 'Temple visits + cultural markets.' },
+      { day: 'Day 3', plan: 'Waterfall hike and cafe hopping.' },
+      { day: 'Day 4', plan: 'Beach day in Canggu and surf lesson.' },
+    ],
+    checklist: ['Light rain jacket', 'Reef-safe sunscreen', 'Comfortable sandals', 'Cash for markets'],
   },
   2: {
     id: 2,
     title: 'Santorini, Greece',
     location: 'Santorini, Greece',
     date: 'April 5-12, 2026',
+    region: 'Europe',
+    season: 'Summer',
+    budget: 'Mid',
+    tags: ['Beaches', 'Romance', 'Food'],
     heroImage: '🏝️',
     description: 'White-washed buildings, crystal-clear waters, and world-famous sunsets.',
     story: `Santorini exceeded every expectation I had. This crescent-shaped island in the Aegean Sea is a masterpiece of natural beauty and human craftsmanship.
@@ -49,12 +69,23 @@ A boat tour of the caldera is essential. Swimming in the hot springs, visiting t
 Santorini taught me to slow down, savor each moment, and appreciate the simple beauty of watching the sun paint the sky in shades of orange and pink.`,
     gallery: ['🌅', '🏛️', '🛥️', '🏖️', '🍷', '🌺'],
     coordinates: { lat: 36.3932, lng: 25.4615 },
+    itinerary: [
+      { day: 'Day 1', plan: 'Check-in Oia, sunset viewpoint.' },
+      { day: 'Day 2', plan: 'Caldera hike + winery tasting.' },
+      { day: 'Day 3', plan: 'Boat tour and hot springs.' },
+      { day: 'Day 4', plan: 'Beach day at Perissa.' },
+    ],
+    checklist: ['Light layers', 'Walking shoes', 'Sunhat', 'Camera'],
   },
   3: {
     id: 3,
     title: 'Kyoto, Japan',
     location: 'Kyoto, Japan',
     date: 'May 1-10, 2026',
+    region: 'East Asia',
+    season: 'Autumn',
+    budget: 'Mid',
+    tags: ['Culture', 'City', 'Food'],
     heroImage: '🗾',
     description: 'Ancient temples, traditional gardens, and authentic Japanese culture.',
     story: `Kyoto is a city where ancient traditions coexist seamlessly with modern life. Spending ten days here felt like stepping through time.
@@ -72,12 +103,23 @@ Kyoto's food scene is exceptional. From conveyor belt sushi to Michelin-starred 
 Cherry blossom season was ending when I visited, but the late-blooming varieties still graced the gardens. Even without blossoms, the Japanese approach to garden design - every view is composed, every season has beauty - is inspiring.`,
     gallery: ['⛩️', '🎎', '🍵', '🌸', '🏯', '🎋'],
     coordinates: { lat: 35.0116, lng: 135.7681 },
+    itinerary: [
+      { day: 'Day 1', plan: 'Gion evening walk and shrine visit.' },
+      { day: 'Day 2', plan: 'Fushimi Inari early morning hike.' },
+      { day: 'Day 3', plan: 'Arashiyama bamboo grove + river stroll.' },
+      { day: 'Day 4', plan: 'Temple circuit and tea ceremony.' },
+    ],
+    checklist: ['Comfortable walking shoes', 'Transit card', 'Reusable water bottle', 'Light jacket'],
   },
   4: {
     id: 4,
     title: 'Reykjavik, Iceland',
     location: 'Reykjavik, Iceland',
     date: 'June 20-28, 2026',
+    region: 'Europe',
+    season: 'Winter',
+    budget: 'High',
+    tags: ['Nature', 'Adventure', 'Hiking'],
     heroImage: '❄️',
     description: 'Northern lights, dramatic landscapes, and geothermal wonders.',
     story: `Iceland is a land of extremes - fire and ice, light and dark, rugged wilderness and modern comfort. Reykjavik served as the perfect base for exploration.
@@ -95,6 +137,69 @@ The Icelandic horse, with its distinctive fluffy coat and tölt gait, stole my h
 Iceland taught me humility before nature's power and beauty. It's a place that demands respect but rewards those who venture here with experiences that transform.`,
     gallery: ['🌌', '🏔️', '♨️', '🧊', '🐴', '🌋'],
     coordinates: { lat: 64.1466, lng: -21.9426 },
+    itinerary: [
+      { day: 'Day 1', plan: 'Reykjavik city walk + local cuisine.' },
+      { day: 'Day 2', plan: 'Golden Circle tour.' },
+      { day: 'Day 3', plan: 'South coast waterfalls.' },
+      { day: 'Day 4', plan: 'Blue Lagoon + northern lights hunt.' },
+    ],
+    checklist: ['Thermal layers', 'Waterproof jacket', 'Gloves', 'Power bank'],
+  },
+  5: {
+    id: 5,
+    title: 'Road Trip Through Switzerland',
+    location: 'Switzerland',
+    date: 'July 8-16, 2026',
+    region: 'Europe',
+    season: 'Summer',
+    budget: 'High',
+    tags: ['Mountains', 'Road Trip', 'Nature'],
+    heroImage: '🏔️',
+    description: 'Snow-capped passes, alpine lakes, and cinematic mountain drives across Switzerland.',
+    story: `Switzerland is a dream for road trips: immaculate roads, postcard villages, and viewpoints at every turn.
+
+I started in Lucerne and followed the lakeside routes to Interlaken, stopping for short hikes and panoramic train rides. The turquoise waters of Lake Brienz and Lake Thun are even more vivid in person.
+
+From there, the drive to Grindelwald and Lauterbrunnen is pure magic. Waterfalls cut through the valley walls, and every cable car brings you to a different kind of alpine calm. The Eiger views from Kleine Scheidegg were the highlight of the week.
+
+I saved the high passes for the final days: Furka and Grimsel. Hairpin roads, glacier views, and small mountain inns made it feel like a slow, cinematic escape.`,
+    gallery: ['🏔️', '🚗', '🌲', '🏞️', '⛰️', '🧀'],
+    coordinates: { lat: 46.8182, lng: 8.2275 },
+    itinerary: [
+      { day: 'Day 1', plan: 'Lucerne lakefront + old town.' },
+      { day: 'Day 2', plan: 'Interlaken and lake cruise.' },
+      { day: 'Day 3', plan: 'Grindelwald and alpine hike.' },
+      { day: 'Day 4', plan: 'Furka + Grimsel passes.' },
+    ],
+    checklist: ['Light jacket', 'Daypack', 'Swiss travel pass', 'Hiking shoes'],
+  },
+  6: {
+    id: 6,
+    title: 'Desert Nights in Morocco',
+    location: 'Morocco',
+    date: 'August 2-10, 2026',
+    region: 'North Africa',
+    season: 'Autumn',
+    budget: 'Mid',
+    tags: ['Desert', 'Culture', 'Food'],
+    heroImage: '🏜️',
+    description: 'Golden dunes, ancient medinas, and starlit nights in the Sahara.',
+    story: `Morocco is a sensory journey: the scent of spices, the call to prayer at dusk, and the rhythm of the souks.
+
+I began in Marrakech, wandering through the maze of the medina and tasting fresh mint tea at a rooftop cafe. The city feels alive at every hour.
+
+From there, I headed toward the Sahara via the Atlas Mountains. The landscapes change fast: winding passes, kasbahs, and then open desert. A camel trek into the dunes at sunset is unforgettable.
+
+At night, the desert is perfectly still. We sat by the fire under a sky full of stars, sharing stories with local guides. It’s a kind of quiet that stays with you.`,
+    gallery: ['🏜️', '🐪', '🌅', '🕌', '✨', '🥘'],
+    coordinates: { lat: 31.7917, lng: -7.0926 },
+    itinerary: [
+      { day: 'Day 1', plan: 'Marrakech medina + rooftop sunset.' },
+      { day: 'Day 2', plan: 'Atlas Mountains drive.' },
+      { day: 'Day 3', plan: 'Sahara dunes and camel trek.' },
+      { day: 'Day 4', plan: 'Desert camp night under stars.' },
+    ],
+    checklist: ['Scarf for sand', 'Sunscreen', 'Light layers', 'Comfortable sandals'],
   },
 };
 
@@ -105,7 +210,10 @@ function WeatherWidget({ coordinates }) {
 
   useEffect(() => {
     async function fetchWeather() {
-      if (!coordinates) return;
+      if (!coordinates) {
+        setLoading(false);
+        return;
+      }
       
       try {
         const data = await getWeather(coordinates.lat, coordinates.lng);
@@ -131,6 +239,14 @@ function WeatherWidget({ coordinates }) {
   }
 
   if (error) {
+    return (
+      <div className="bg-white rounded-2xl shadow-lg p-6 border-2 border-soft-mint">
+        <p className="text-dark-green font-body text-center">Weather data unavailable</p>
+      </div>
+    );
+  }
+
+  if (!coordinates) {
     return (
       <div className="bg-white rounded-2xl shadow-lg p-6 border-2 border-soft-mint">
         <p className="text-dark-green font-body text-center">Weather data unavailable</p>
@@ -176,10 +292,62 @@ function WeatherWidget({ coordinates }) {
 
 export default function TripDetails() {
   const { id } = useParams();
-  const trip = tripsData[id];
+  const { trip: dbTrip, loading: dbLoading } = useTrip(id);
+  const { trips: allTrips } = useTrips();
+  const wishlist = useWishlist();
+  const trip = tripsData[id] || dbTrip;
   const [travelInfo, setTravelInfo] = useState(null);
   const [infoLoading, setInfoLoading] = useState(true);
   const [infoError, setInfoError] = useState(null);
+  const [copyNotice, setCopyNotice] = useState('');
+  const heroImage = trip
+    ? resolveSingleImage(trip.location, travelInfo?.images?.[0] || trip.image_url || trip.image)
+    : null;
+  const storyText =
+    trip?.story ||
+    trip?.content ||
+    (trip?.description ? `${trip.description} This journey highlights the key moments, local culture, and must-see experiences.` : '');
+  const storyParagraphs = storyText
+    ? storyText.split('\n\n')
+    : [
+        `Discover the highlights of ${trip?.location || 'this destination'} and plan your own memorable trip.`,
+      ];
+  const dateText = trip?.date || (trip?.created_at ? new Date(trip.created_at).toLocaleDateString() : 'Flexible dates');
+  const relatedTrips = allTrips
+    .filter((t) => t.id !== trip?.id)
+    .filter((t) => {
+      if (!trip) return false;
+      const tagMatch = Array.isArray(trip.tags) && Array.isArray(t.tags)
+        ? t.tags.some((tag) => trip.tags.includes(tag))
+        : false;
+      const regionMatch = trip.region && t.region && trip.region === t.region;
+      return tagMatch || regionMatch;
+    })
+    .slice(0, 3);
+  const chatContext = trip
+    ? [
+        `Location: ${trip.location}`,
+        `Title: ${trip.title}`,
+        trip.description ? `Summary: ${trip.description}` : '',
+        Array.isArray(trip.tags) ? `Tags: ${trip.tags.join(', ')}` : '',
+        travelInfo?.topPlaces?.length ? `Top places: ${travelInfo.topPlaces.join(', ')}` : '',
+      ]
+        .filter(Boolean)
+        .join('\n')
+    : '';
+
+  useEffect(() => {
+    if (!trip) return;
+    const ogImage = `/api/og?title=${encodeURIComponent(trip.title)}&subtitle=${encodeURIComponent(
+      trip.location
+    )}&image=${encodeURIComponent(trip.image_url || heroImage || '')}`;
+    setMeta({
+      title: `${trip.title} | TravelBlog`,
+      description: trip.description,
+      image: ogImage,
+      url: window.location.href,
+    });
+  }, [trip, heroImage]);
 
   useEffect(() => {
     if (!trip?.location) return;
@@ -232,6 +400,18 @@ export default function TripDetails() {
     };
   }, [trip?.location]);
 
+  if (dbLoading) {
+    return (
+      <Layout>
+        <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-16 space-y-6">
+          <div className="h-64 rounded-3xl bg-white/60 border-2 border-soft-mint animate-pulse" />
+          <div className="h-10 w-1/2 bg-white/60 border-2 border-soft-mint rounded-full animate-pulse" />
+          <div className="h-40 bg-white/60 border-2 border-soft-mint rounded-2xl animate-pulse" />
+        </div>
+      </Layout>
+    );
+  }
+
   if (!trip) {
     return (
       <Layout>
@@ -249,11 +429,50 @@ export default function TripDetails() {
     <Layout>
       <div className="bg-background-mint">
         <div className="relative h-[400px] md:h-[500px] bg-gradient-to-r from-primary-dark to-dark-green flex items-center justify-center overflow-hidden">
-          <div className="absolute inset-0 flex items-center justify-center text-[150px] md:text-[200px] opacity-30">
-            {trip.heroImage}
-          </div>
+          {heroImage && (
+            <div
+              className="absolute inset-0 bg-cover bg-center"
+              style={{ backgroundImage: `url(${heroImage})` }}
+            />
+          )}
+          <div className="absolute inset-0 bg-gradient-to-r from-primary-dark/70 to-dark-green/60" />
+          {!heroImage && (
+            <div className="absolute inset-0 flex items-center justify-center text-[150px] md:text-[200px] opacity-30">
+              {trip.heroImage || '🌍'}
+            </div>
+          )}
           <div className="relative text-center text-white px-4 z-10">
             <h1 className="font-hero text-4xl md:text-6xl mb-4">{trip.title}</h1>
+            <div className="flex justify-center mb-4">
+              <button
+                type="button"
+                onClick={() => wishlist.toggle(trip)}
+                className="bg-white/90 text-primary-dark text-xs sm:text-sm font-medium px-3 py-1 rounded-full font-body hover:bg-white transition"
+              >
+                {wishlist.isSaved(trip.id) ? 'Saved' : 'Save'}
+              </button>
+              <a
+                href="/wishlist"
+                className="ml-3 bg-white/10 text-white text-xs sm:text-sm font-medium px-3 py-1 rounded-full font-body hover:bg-white/20 transition"
+              >
+                Wishlist
+              </a>
+              <button
+                type="button"
+                onClick={async () => {
+                  const shareUrl = window.location.href;
+                  if (navigator.share) {
+                    await navigator.share({ title: trip.title, url: shareUrl });
+                  } else {
+                    await navigator.clipboard.writeText(shareUrl);
+                    setCopyNotice('Link copied');
+                  }
+                }}
+                className="ml-3 bg-white/10 text-white text-xs sm:text-sm font-medium px-3 py-1 rounded-full font-body hover:bg-white/20 transition"
+              >
+                Share
+              </button>
+            </div>
             <div className="flex flex-wrap justify-center gap-4 text-light-green">
               <span className="flex items-center gap-2">
                 <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -266,8 +485,32 @@ export default function TripDetails() {
                 <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
                 </svg>
-                {trip.date}
+                {dateText}
               </span>
+              {trip.region && (
+                <span className="flex items-center gap-2">
+                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 7h18M3 12h18M3 17h18" />
+                  </svg>
+                  {trip.region}
+                </span>
+              )}
+              {trip.season && (
+                <span className="flex items-center gap-2">
+                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 2v20m10-10H2" />
+                  </svg>
+                  {trip.season}
+                </span>
+              )}
+              {trip.budget && (
+                <span className="flex items-center gap-2">
+                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8c-1.657 0-3 1.12-3 2.5S10.343 13 12 13s3 1.12 3 2.5S13.657 18 12 18m0-10V6m0 12v-2" />
+                  </svg>
+                  {trip.budget}
+                </span>
+              )}
             </div>
           </div>
         </div>
@@ -277,12 +520,48 @@ export default function TripDetails() {
             <p className="text-xl text-dark-green italic mb-8 leading-relaxed font-body">
               "{trip.description}"
             </p>
+            {Array.isArray(trip.tags) && trip.tags.length > 0 && (
+              <div className="flex flex-wrap gap-2 mb-6">
+                {trip.tags.map((tag) => (
+                  <span key={tag} className="px-3 py-1 rounded-full bg-background-mint text-primary-dark text-xs font-body">
+                    {tag}
+                  </span>
+                ))}
+              </div>
+            )}
             <div className="prose prose-lg max-w-none">
-              {trip.story.split('\n\n').map((paragraph, index) => (
+              {storyParagraphs.map((paragraph, index) => (
                 <p key={index} className="text-dark-green mb-6 leading-relaxed font-body">
                   {paragraph}
                 </p>
               ))}
+            </div>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-12">
+            <div className="bg-white rounded-2xl shadow-lg p-6 border-2 border-soft-mint">
+              <h3 className="font-heading text-xl text-primary-dark mb-3">Itinerary</h3>
+              <ul className="space-y-3">
+                {(trip.itinerary || []).map((item, index) => (
+                  <li key={index} className="text-dark-green font-body">
+                    <span className="font-semibold">{item.day}:</span> {item.plan}
+                  </li>
+                ))}
+              </ul>
+              {!trip.itinerary && (
+                <p className="text-dark-green font-body">Plan a flexible route based on your interests.</p>
+              )}
+            </div>
+            <div className="bg-white rounded-2xl shadow-lg p-6 border-2 border-soft-mint">
+              <h3 className="font-heading text-xl text-primary-dark mb-3">Travel Checklist</h3>
+              <ul className="space-y-2">
+                {(trip.checklist || []).map((item, index) => (
+                  <li key={index} className="text-dark-green font-body">• {item}</li>
+                ))}
+              </ul>
+              {!trip.checklist && (
+                <p className="text-dark-green font-body">Pack light layers, comfortable shoes, and essentials.</p>
+              )}
             </div>
           </div>
 
@@ -297,17 +576,26 @@ export default function TripDetails() {
             <div>
               <h2 className="font-heading text-3xl font-bold text-primary-dark mb-8 text-center">Location</h2>
               <div className="bg-white rounded-2xl shadow-lg overflow-hidden border-2 border-soft-mint">
-                <div className="h-[300px] bg-gradient-to-br from-soft-mint to-light-green flex items-center justify-center">
-                  <div className="text-center">
-                    <div className="text-6xl mb-4">🗺️</div>
-                    <p className="text-dark-green font-medium font-body">{trip.location}</p>
-                    <p className="text-sm text-accent-green mt-2 font-body">
-                      {trip.coordinates.lat.toFixed(4)}°N, {Math.abs(trip.coordinates.lng).toFixed(4)}°W
-                    </p>
-                    <p className="text-sm text-gray-500 mt-4 font-body">
-                      Google Maps integration would display here
-                    </p>
-                  </div>
+                <div className="h-[300px]">
+                  {trip.coordinates ? (
+                    <iframe
+                      title="Map"
+                      className="w-full h-full"
+                      loading="lazy"
+                      referrerPolicy="no-referrer-when-downgrade"
+                      src={`https://www.google.com/maps?q=${trip.coordinates.lat},${trip.coordinates.lng}&z=6&output=embed`}
+                    />
+                  ) : (
+                    <div className="h-full bg-gradient-to-br from-soft-mint to-light-green flex items-center justify-center">
+                      <div className="text-center">
+                        <div className="text-6xl mb-4">🗺️</div>
+                        <p className="text-dark-green font-medium font-body">{trip.location}</p>
+                        <p className="text-sm text-gray-500 mt-4 font-body">
+                          Location coordinates not available.
+                        </p>
+                      </div>
+                    </div>
+                  )}
                 </div>
               </div>
             </div>
@@ -316,8 +604,43 @@ export default function TripDetails() {
               <WeatherWidget coordinates={trip.coordinates} />
             </div>
           </div>
+
+          {relatedTrips.length > 0 && (
+            <div className="mb-6">
+              <h2 className="font-heading text-3xl font-bold text-primary-dark mb-6 text-center">
+                Related Trips
+              </h2>
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                {relatedTrips.map((rt) => (
+                  <a
+                    key={rt.id}
+                    href={`/trip/${rt.id}`}
+                    className="bg-white rounded-2xl shadow-lg border-2 border-soft-mint overflow-hidden hover:-translate-y-1 transition-transform duration-300"
+                  >
+                    <img
+                      src={rt.image_url || rt.image}
+                      alt={rt.title}
+                      loading="lazy"
+                      decoding="async"
+                      className="w-full h-40 object-cover"
+                      onError={(e) => {
+                        e.currentTarget.src = '/fallback-images/placeholder.svg';
+                      }}
+                    />
+                    <div className="p-4">
+                      <p className="text-xs text-accent-green font-body uppercase tracking-[0.2em]">{rt.location}</p>
+                      <h3 className="font-heading text-lg text-primary-dark mt-2">{rt.title}</h3>
+                      <p className="text-sm text-dark-green font-body mt-2 line-clamp-2">{rt.description}</p>
+                    </div>
+                  </a>
+                ))}
+              </div>
+            </div>
+          )}
         </div>
       </div>
+      <Toast message={copyNotice} duration={3000} onClose={() => setCopyNotice('')} />
+      <ChatbotWidget context={chatContext} />
     </Layout>
   );
 }

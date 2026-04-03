@@ -134,13 +134,10 @@ export default function Home() {
   }, [visibleCount]);
 
   useEffect(() => {
-    const ogImage = `/api/og?title=${encodeURIComponent('TravelBlog')}&subtitle=${encodeURIComponent(
-      'Explore the world'
-    )}`;
     setMeta({
       title: 'TravelBlog | Explore the World',
       description: 'Discover immersive travel stories, curated trips, and destination guides.',
-      image: ogImage,
+      image: featuredTrips[0]?.image,
       url: window.location.href,
     });
   }, []);

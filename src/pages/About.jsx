@@ -4,13 +4,10 @@ import { setMeta } from '../utils/seo';
 
 export default function About() {
   useEffect(() => {
-    const ogImage = `/api/og?title=${encodeURIComponent('About')}&subtitle=${encodeURIComponent(
-      'Our travel mission'
-    )}`;
     setMeta({
       title: 'About | TravelBlog',
       description: 'Learn about our travel mission and community.',
-      image: ogImage,
+      image: undefined,
       url: window.location.href,
     });
   }, []);

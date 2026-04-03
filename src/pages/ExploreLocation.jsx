@@ -78,13 +78,10 @@ export default function ExploreLocation() {
 
   useEffect(() => {
     if (!data) return;
-    const ogImage = `/api/og?title=${encodeURIComponent(data.location)}&subtitle=${encodeURIComponent(
-      'Destination guide'
-    )}&image=${encodeURIComponent(data.images?.[0] || '')}`;
     setMeta({
       title: `${data.location} | TravelBlog`,
       description: data.intro || `Explore ${data.location}`,
-      image: ogImage,
+      image: data.images?.[0],
       url: window.location.href,
     });
   }, [data]);

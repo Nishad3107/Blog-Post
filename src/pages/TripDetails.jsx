@@ -338,13 +338,10 @@ export default function TripDetails() {
 
   useEffect(() => {
     if (!trip) return;
-    const ogImage = `/api/og?title=${encodeURIComponent(trip.title)}&subtitle=${encodeURIComponent(
-      trip.location
-    )}&image=${encodeURIComponent(trip.image_url || heroImage || '')}`;
     setMeta({
       title: `${trip.title} | TravelBlog`,
       description: trip.description,
-      image: ogImage,
+      image: trip.image_url || heroImage,
       url: window.location.href,
     });
   }, [trip, heroImage]);

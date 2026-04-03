@@ -8,13 +8,10 @@ export default function Wishlist() {
   const wishlist = useWishlist();
 
   useEffect(() => {
-    const ogImage = `/api/og?title=${encodeURIComponent('Wishlist')}&subtitle=${encodeURIComponent(
-      'Saved trips'
-    )}`;
     setMeta({
       title: 'Wishlist | TravelBlog',
       description: 'Your saved trips and destinations.',
-      image: ogImage,
+      image: undefined,
       url: window.location.href,
     });
   }, []);

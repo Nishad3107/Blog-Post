@@ -17,13 +17,10 @@ export default function Trips() {
   const wishlist = useWishlist();
 
   useEffect(() => {
-    const ogImage = `/api/og?title=${encodeURIComponent('Trips')}&subtitle=${encodeURIComponent(
-      'Curated destinations'
-    )}`;
     setMeta({
       title: 'TravelBlog | Trips',
       description: 'Browse curated travel stories and destinations.',
-      image: ogImage,
+      image: undefined,
       url: window.location.href,
     });
   }, []);

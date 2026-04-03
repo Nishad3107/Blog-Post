@@ -29,13 +29,10 @@ export default function AddStory() {
   const [previewUrl, setPreviewUrl] = useState(null);
 
   useEffect(() => {
-    const ogImage = `/api/og?title=${encodeURIComponent('Add Story')}&subtitle=${encodeURIComponent(
-      'Share your journey'
-    )}`;
     setMeta({
       title: 'Add Story | TravelBlog',
       description: 'Share your travel experience with the community.',
-      image: ogImage,
+      image: undefined,
       url: window.location.href,
     });
   }, []);

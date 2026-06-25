@@ -57,7 +57,7 @@ src/
 
 ## Environment Variables
 
-Create a `.env` file with your Supabase credentials:
+Create a ".env" file with your Supabase credentials:
 
 ```
 VITE_SUPABASE_URL=your_supabase_url
